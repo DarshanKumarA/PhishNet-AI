@@ -125,7 +125,7 @@ def predict_url(request: URLRequest):
         # IMPROVED THRESHOLD LOGIC
         # Apply the 75% threshold to ALL bad labels (Phishing, Malware, Defacement)
         # ==================================================================
-        if pred_label != "benign" and confidence < 0.75:
+        if pred_label != "benign" and confidence < 0.45:
             reason_text = f"Low Risk (Model Confidence {confidence*100:.1f}% too low)"
             pred_label = "benign"
         else:
