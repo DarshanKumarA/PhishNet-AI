@@ -8,8 +8,8 @@ import numpy as np
 KNOWN_LEGITIMATE_DOMAINS = {
     "google.com", "youtube.com", "facebook.com", "github.com", "amazon.com",
     "paypal.com", "netflix.com", "microsoft.com", "apple.com", "twitter.com",
-    "linkedin.com", "instagram.com", "reddit.com", "wikipedia.org", "stackoverflow.com",
-    "twitch.tv", "tiktok.com", "tumblr.com", "pinterest.com", "quora.com", "dropbox.com", "web.whatsapp.com/", "discord.com",
+    "linkedin.com", "instagram.com", "reddit.com","gov.in", "wikipedia.org", "spotify.com", "stackoverflow.com",
+    "twitch.tv", "tiktok.com", "tumblr.com", "pinterest.com", "quora.com", "dropbox.com","telegram.org","phishtank.com", "web.whatsapp.com/", "discord.com",
 }
 
 PHISHING_KEYWORDS = ["verify", "confirm", "update", "secure", "login", "suspended"]
