@@ -7,6 +7,7 @@ import pickle
 import numpy as np
 from scipy.sparse import hstack, csr_matrix
 from datetime import datetime
+from pathlib import Path  # <-- NEW IMPORT
 from utils import (
     analyze_url_security, 
     get_url_features, 
@@ -33,9 +34,16 @@ scan_history = [] # In-memory storage for dashboard
 @app.on_event("startup")
 def load_model():
     global model_data
+    
+    # --- FIX: Construct model path relative to the script location ---
+    # This creates a reliable, absolute path to the .pkl file
+    MODEL_PATH = Path(__file__).parent / "malicious_url_detector.pkl"
+    # ------------------------------------------------------------------
+    
     try:
         print(" Loading model...")
-        with open("malicious_url_detector.pkl", "rb") as f:
+        # Use the corrected path to open the file
+        with open(MODEL_PATH, "rb") as f:
             package = pickle.load(f)
             
         model_data["model"] = package['model']
@@ -46,7 +54,7 @@ def load_model():
         print(f" Model loaded! Version: {package.get('version', 'Unknown')}")
         
     except FileNotFoundError:
-        print("Error: malicious_url_detector.pkl not found!")
+        print(f"Error: {MODEL_PATH} not found! Check file upload.")
     except Exception as e:
         print(f"Error loading model: {str(e)}")
 
