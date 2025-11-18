@@ -1,61 +1,53 @@
-let tooltipp = null;
+let tooltip = null;
 let hoverTimeout = null;
-let currentTarget = null;
+let currentLink = null;
 
-// Create Tooltip
+function findUrlInElement(el) {
+    if (!el) return null;
+
+    // 1. Check Raw Attribute FIRST (This avoids the browser adding slashes)
+    let rawHref = el.getAttribute('href');
+    if (rawHref && rawHref.startsWith('http')) return rawHref;
+
+    // 2. Fallback to standard property
+    if (el.href && el.href.startsWith('http')) return el.href;
+    }
+
+// Create the Tooltip Element
 function createTooltip() {
     const div = document.createElement('div');
     div.id = 'phishnet-hover-tooltip';
-    div.style.cssText = `
-        position: fixed;
-        z-index: 2147483647 !important;
-        padding: 10px 14px;
-        border-radius: 8px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        white-space: nowrap;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-        backdrop-filter: blur(5px);
-        pointer-events: none;
-        display: none;
-        transition: all 0.2s ease;
-    `;
+    div.style.position = 'absolute';
+    div.style.zIndex = '2147483647'; // Max Z-Index
+    div.style.padding = '8px 12px';
+    div.style.borderRadius = '6px';
+    div.style.fontFamily = 'Segoe UI, sans-serif';
+    div.style.fontSize = '13px';
+    div.style.fontWeight = '600';
+    div.style.whiteSpace = 'nowrap'; // Prevent text wrapping
+    div.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)'; // Stronger shadow
+    div.style.pointerEvents = 'none'; 
+    div.style.display = 'none';
+    div.style.transition = 'opacity 0.2s';
     document.body.appendChild(div);
     return div;
 }
 
-tooltipp = createTooltip();
+tooltip = createTooltip();
 
-// Helper: Recursively find a URL in an element or its family
-function findUrlInElement(el) {
-    if (!el) return null;
-
-    // 1. Check standard HREF
-    if (el.href && el.href.startsWith('http')) return el.href;
-    if (el.getAttribute('href')) return el.getAttribute('href');
-
-    // 2. Check Data Attributes (Common in SPAs)
-    const dataUrl = el.getAttribute('data-href') || el.getAttribute('data-link') || el.getAttribute('data-url');
-    if (dataUrl && dataUrl.startsWith('http')) return dataUrl;
-
-    // 3. Check Title or Aria-Label (Sometimes hidden there)
-    if (el.title && el.title.startsWith('http')) return el.title;
-    if (el.getAttribute('aria-label') && el.getAttribute('aria-label').startsWith('http')) return el.getAttribute('aria-label');
-
-    return null;
-}
-
-// Scan Logic
+// Function to Scan
 async function scanLink(url, x, y) {
-    // UI: Loading
-    tooltipp.style.display = 'block';
-    tooltipp.style.top = (y - 50) + 'px';
-    tooltipp.style.left = (x + 10) + 'px';
-    tooltipp.style.background = 'rgba(30, 41, 59, 0.95)'; 
-    tooltipp.style.color = '#94a3b8'; 
-    tooltipp.style.border = '1px solid #334155';
-    tooltipp.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><span>⏳</span> Scanning...</div>`;
+    // Show Loading State
+    tooltip.style.display = 'block';
+    
+    // CHANGE: Position ABOVE the cursor (y - 50px)
+    tooltip.style.top = (y - 50) + 'px'; 
+    tooltip.style.left = (x + 10) + 'px';
+    
+    tooltip.style.background = '#1e293b'; 
+    tooltip.style.color = '#94a3b8'; 
+    tooltip.style.border = '1px solid #334155';
+    tooltip.innerHTML = `<span>⏳ Scanning...</span>`;
 
     try {
         const response = await fetch('http://127.0.0.1:8000/predict', {
@@ -65,100 +57,54 @@ async function scanLink(url, x, y) {
         });
         const data = await response.json();
 
+        // Update Tooltip with Result
         if (data.is_safe) {
-            tooltipp.style.background = 'rgba(6, 78, 59, 0.95)';
-            tooltipp.style.border = '1px solid #10b981';
-            tooltipp.style.color = '#ffffff';
-            tooltipp.innerHTML = `✅ Safe <span style="opacity:0.7">(${Math.round(data.confidence*100)}%)</span>`;
+            tooltip.style.background = 'rgba(16, 185, 129, 0.95)'; // Green
+            tooltip.style.color = '#fff';
+            tooltip.style.border = '1px solid #059669';
+            tooltip.innerHTML = `<span>✅ Safe to Visit</span>`;
         } else {
-            tooltipp.style.background = 'rgba(127, 29, 29, 0.95)';
-            tooltipp.style.border = '1px solid #ef4444';
-            tooltipp.style.color = '#ffffff';
-            tooltipp.innerHTML = `⚠️ <b>PHISHING</b> DETECTED`;
+            tooltip.style.background = 'rgba(239, 68, 68, 0.95)'; // Red
+            tooltip.style.color = '#fff';
+            tooltip.style.border = '1px solid #dc2626';
+            tooltip.innerHTML = `<span>⚠️ PHISHING DETECTED</span>`;
         }
+
     } catch (err) {
-        tooltipp.style.display = 'none'; 
+        tooltip.innerHTML = `<span>🔌 Connection Error</span>`;
     }
 }
 
-// --- ADVANCED EVENT LISTENER ---
-
+// Event Listeners
 document.addEventListener('mouseover', (e) => {
-    const target = e.target;
-    let foundUrl = null;
-    let clickableElement = null;
+    const target = e.target.closest('a');
+    
+    if (target && target.href) {
+        const url = target.href;
+        if (!url.startsWith('http')) return;
 
-    // STRATEGY 1: Check the element itself
-    foundUrl = findUrlInElement(target);
-    if (foundUrl) clickableElement = target;
+        currentLink = url;
 
-    // STRATEGY 2: Check Parents (Up to 3 levels up)
-    if (!foundUrl) {
-        let parent = target.parentElement;
-        for (let i = 0; i < 3; i++) {
-            if (parent) {
-                foundUrl = findUrlInElement(parent);
-                if (foundUrl) {
-                    clickableElement = parent;
-                    break;
-                }
-                parent = parent.parentElement;
-            }
-        }
-    }
-
-    // STRATEGY 3: Check Specific WhatsApp Button Structure
-    // If it's a button/role=button but NO URL found, it might be a JS-only button.
-    // We still highlight it, but warn the user.
-    if (!foundUrl) {
-        const btn = target.closest('button, [role="button"]');
-        if (btn) {
-            clickableElement = btn;
-            // We found a button, but NO URL. 
-            // This is the "WhatsApp Hidden Link" scenario.
-        }
-    }
-
-    // ACTION
-    if (clickableElement) {
-        // Highlight
-        currentTarget = clickableElement;
-        currentTarget.style.outline = '2px dashed #38bdf8';
-        currentTarget.style.outlineOffset = '2px';
-        currentTarget.style.cursor = 'wait';
-
-        if (foundUrl) {
-            // If we found a URL, Scan it!
-            hoverTimeout = setTimeout(() => {
-                scanLink(foundUrl, e.clientX, e.clientY);
-            }, 400);
-        } else {
-            // If it's a button but HIDDEN URL, show specific tooltip
-            tooltipp.style.display = 'block';
-            tooltipp.style.top = (e.clientY - 50) + 'px';
-            tooltipp.style.left = (e.clientX + 10) + 'px';
-            tooltipp.style.background = '#334155';
-            tooltipp.style.color = '#cbd5e1';
-            tooltipp.style.border = '1px solid #475569';
-            tooltipp.innerHTML = `🔒 Link hidden by App`;
-        }
+        hoverTimeout = setTimeout(() => {
+            scanLink(url, e.pageX, e.pageY);
+        }, 500);
     }
 });
 
 document.addEventListener('mouseout', (e) => {
-    if (currentTarget) {
+    const target = e.target.closest('a');
+    if (target) {
         clearTimeout(hoverTimeout);
-        tooltipp.style.display = 'none';
-        currentTarget.style.outline = '';
-        currentTarget.style.outlineOffset = '';
-        currentTarget.style.cursor = '';
-        currentTarget = null;
+        tooltip.style.display = 'none';
+        currentLink = null;
     }
 });
 
+// Update position if mouse moves inside the link
 document.addEventListener('mousemove', (e) => {
-    if (tooltipp.style.display === 'block') {
-        tooltipp.style.top = (e.clientY - 50) + 'px';
-        tooltipp.style.left = (e.clientX + 10) + 'px';
+    if (currentLink && tooltip.style.display === 'block') {
+        // CHANGE: Keep it ABOVE the cursor while moving
+        tooltip.style.top = (e.pageY - 50) + 'px';
+        tooltip.style.left = (e.pageX + 10) + 'px';
     }
 });
