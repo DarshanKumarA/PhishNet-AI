@@ -34,7 +34,7 @@ scan_history = [] # In-memory storage for dashboard
 def load_model():
     global model_data
     try:
-        print("⏳ Loading model...")
+        print(" Loading model...")
         with open("malicious_url_detector.pkl", "rb") as f:
             package = pickle.load(f)
             
@@ -43,12 +43,12 @@ def load_model():
         model_data["label_encoder"] = package['label_encoder']
         model_data["feature_cols"] = package['feature_cols']
         
-        print(f"✅ Model loaded! Version: {package.get('version', 'Unknown')}")
+        print(f" Model loaded! Version: {package.get('version', 'Unknown')}")
         
     except FileNotFoundError:
-        print("❌ Error: malicious_url_detector.pkl not found!")
+        print("Error: malicious_url_detector.pkl not found!")
     except Exception as e:
-        print(f"❌ Error loading model: {str(e)}")
+        print(f"Error loading model: {str(e)}")
 
 # Data Models
 class URLRequest(BaseModel):
