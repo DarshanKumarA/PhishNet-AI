@@ -16,11 +16,15 @@ const URLChecker = () => {
     setError('');
     setResult(null);
 
+    // DYNAMIC URL CONFIGURATION
+    // Checks if there is a live server URL (Vercel env variable), otherwise uses localhost
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
     try {
-      const response = await axios.post('http://127.0.0.1:8000/predict', { url });
+      // Updated to use the dynamic API_BASE
+      const response = await axios.post(`${API_BASE}/predict`, { url });
       setResult(response.data);
     } catch (err) {
-      // Fix: Log the error so 'err' is used, satisfying the linter
       console.error("Scan Error:", err);
       setError('Connection failed. Ensure backend is running.');
     } finally {
