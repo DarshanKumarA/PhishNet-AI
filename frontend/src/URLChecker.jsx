@@ -9,6 +9,34 @@ const URLChecker = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // NEW: Helper function to save result to Local Storage
+  const saveToHistory = (newEntry) => {
+    try {
+      // 1. Get existing history
+      const existingData = localStorage.getItem('scanHistory');
+      const history = existingData ? JSON.parse(existingData) : [];
+      
+      // 2. Add timestamp if missing
+      if (!newEntry.timestamp) {
+        newEntry.timestamp = new Date().toISOString();
+      }
+
+      // 3. Add new entry to the FRONT of the list
+      const updatedHistory = [newEntry, ...history];
+
+      // 4. Limit to last 50 scans to save space
+      if (updatedHistory.length > 50) {
+        updatedHistory.length = 50;
+      }
+
+      // 5. Save back to Local Storage
+      localStorage.setItem('scanHistory', JSON.stringify(updatedHistory));
+      
+    } catch (e) {
+      console.error("Failed to save history locally", e);
+    }
+  };
+
   const analyzeUrl = async () => {
     if (!url) return;
     
@@ -17,13 +45,17 @@ const URLChecker = () => {
     setResult(null);
 
     // DYNAMIC URL CONFIGURATION
-    // Checks if there is a live server URL (Vercel env variable), otherwise uses localhost
     const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
     try {
-      // Updated to use the dynamic API_BASE
       const response = await axios.post(`${API_BASE}/predict`, { url });
-      setResult(response.data);
+      const data = response.data;
+      
+      setResult(data);
+      
+      // NEW: Save the successful result to history immediately
+      saveToHistory(data);
+
     } catch (err) {
       console.error("Scan Error:", err);
       setError('Connection failed. Ensure backend is running.');

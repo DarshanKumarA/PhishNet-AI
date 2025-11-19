@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+// Note: Axios removed because we are reading from Local Storage
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { Trash2, Activity, ShieldCheck, AlertTriangle, TrendingUp, Clock, PieChart as PieIcon } from 'lucide-react';
 
-// FIX: Define StatCard OUTSIDE the Dashboard component
+// StatCard Component
 const StatCard = ({ title, value, icon: Icon, color, subtext }) => {
   return (
     <div className="card" style={{ 
@@ -19,7 +19,6 @@ const StatCard = ({ title, value, icon: Icon, color, subtext }) => {
           <h3 style={{ margin: '5px 0 0 0', fontSize: '2.2rem', fontWeight: '700', color: '#333' }}>{value}</h3>
         </div>
         <div style={{ background: `${color}15`, padding: '10px', borderRadius: '10px' }}>
-          {/* Ensure Icon exists before rendering to prevent crashes */}
           {Icon && <Icon size={24} color={color} />}
         </div>
       </div>
@@ -32,29 +31,29 @@ const Dashboard = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchHistory = async () => {
+  // NEW: Fetch history from Local Storage instead of API
+  useEffect(() => {
     try {
-      const res = await axios.get('http://127.0.0.1:8000/history');
-      setHistory(res.data);
-    } catch (err) {
-      console.error("Failed to fetch history", err);
+      const localData = localStorage.getItem('scanHistory');
+      if (localData) {
+        setHistory(JSON.parse(localData));
+      }
+    } catch (error) {
+      console.error("Error loading history from local storage", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const clearHistory = async () => {
+  // NEW: Clear history from Local Storage
+  const clearHistory = () => {
     if(confirm("Are you sure you want to clear all scan history?")) {
-      await axios.delete('http://127.0.0.1:8000/history');
+      localStorage.removeItem('scanHistory');
       setHistory([]);
     }
   };
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  // Calculate Statistics safely
+  // Calculate Statistics
   const totalScans = history.length;
   const safeScans = history.filter(h => h.is_safe).length;
   const maliciousScans = totalScans - safeScans;
@@ -160,7 +159,7 @@ const Dashboard = () => {
 
           {/* RECENT SCANS LIST */}
           <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '1rem' }}>
               <Clock size={20} color="#1F509A" />
               <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#333' }}>Recent Activity Log</h3>
             </div>
